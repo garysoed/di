@@ -158,4 +158,4 @@ gulp.task('pack', ['src', 'ex'], function() {
       .pipe(zip('bin.zip'))
       .pipe(gulp.dest('dist'));
 });
-gulp.task('check', ['karma', 'doc']);
+gulp.task('check', ['karma']);
