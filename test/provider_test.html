@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base href=".">
+  <title>BindingTree Unit Tests</title>
+
+  <link rel="import" href="../node_modules/spies/main_chai_expect.html">
+  <link rel="import" href="testutils.html">
+
+  <script src="bin.js"></script>
+</head>
+<body>
+  <script lang="es6">
+  let expect = chai.expect;
+  let _ = spies.Spies;
+
+  describe('Provider', () => {
+    describe('#resolve', () => {
+      it('should prefer the value from the local scope', () => {
+        let localScope = new DI.Scope().constant('a', 1);
+        let givenScope = new DI.Scope().constant('a', 2);
+        let innerFn = _.spiedFunction().overrideReturn(4);
+        let fn = a => innerFn(a);
+
+        let provider = new DI.Provider(fn, [], localScope);
+        expect(provider.resolve(givenScope)).to.be.equal(4);
+        expect(innerFn).calledWith(1).at.least(1);
+      });
+      it('should prefer the value from the given scope if value from local scope cannot be resolved', () => {
+        let localScope = new DI.Scope();
+        let givenScope = new DI.Scope().constant('a', 1);
+        let innerFn = _.spiedFunction().overrideReturn(4);
+        let fn = a => innerFn(a);
+
+        let provider = new DI.Provider(fn, [], localScope);
+        expect(provider.resolve(givenScope)).to.be.equal(4);
+        expect(innerFn).calledWith(1).at.least(1);
+      });
+      it('should append the prefix when resolving', () => {
+        let localScope = new DI.Scope();
+        let givenScope = new DI.Scope().constant('prefix.a', 1);
+        let innerFn = _.spiedFunction().overrideReturn(4);
+        let fn = a => innerFn(a);
+
+        let provider = new DI.Provider(fn, ['prefix'], localScope);
+        expect(provider.resolve(givenScope)).to.be.equal(4);
+        expect(innerFn).calledWith(1).at.least(1);
+      });
+      it('should use the global value if given or local scopes cannot resolve the value', () => {
+        DI.bind('a', [() => 2]);
+        let givenScope = new DI.Scope();
+        let innerFn = _.spiedFunction().overrideReturn(4);
+        let fn = a => innerFn(a);
+
+        let provider = new DI.Provider(fn, [], new DI.Scope());
+        expect(provider.resolve(givenScope)).to.be.equal(4);
+        expect(innerFn).calledWith(2).at.least(1);
+      });
+      it('should call the function using its arguments for bound values', () => {
+        let rv = 3;
+        let innerFn = _.spiedFunction().overrideReturn(rv);
+        let fn = (a, b) => {
+          return innerFn(a, b);
+        };
+
+        let boundedValues = {
+          'a': 1,
+          'b': 2
+        };
+        let scope = new DI.Scope()
+            .constant('a', 1)
+            .constant('b', 2);
+
+        let provider = new DI.Provider(fn, [], scope);
+
+        expect(provider.resolve(scope)).to.be.equal(rv);
+      });
+      it('should cache the result for the same scope', () => {
+        let scope = {};
+        let fn = _.spiedFunction().overrideReturn(3);
+        let provider = new DI.Provider(fn, [], scope);
+        provider.resolve(scope);
+        provider.resolve(scope);
+
+        expect(fn).called().to.be.equal(1);
+      });
+      it('should call the function again for a different scope', () => {
+        let scope1 = {};
+        let scope2 = {};
+        let fn = _.spiedFunction().overrideReturn(3);
+
+        let provider = new DI.Provider(fn, [], scope1);
+
+        provider.resolve(scope1);
+        provider.resolve(scope2);
+
+        expect(fn).called().to.be.equal(2);
+      });
+      it('should throw exception if an argument cannot be found', () => {
+        let name = 'name';
+
+        let provider = new DI.Provider(a => 3, [], DI, name);
+
+        expect(() => provider.resolve(DI)).to.throw(`${name}`);
+      });
+      it('should throw exception if an argument cannot be found for nameless provider', () => {
+        let provider = new DI.Provider(a => 3, [], DI);
+        expect(() => provider.resolve(DI)).to.throw('running expression');
+      });
+      it('should print warning if the function returns undefined', () => {
+        let name = 'name';
+
+        _.spy(console, 'warn').overrideReturn();
+
+        let provider = new DI.Provider(() => undefined, [], DI, name);
+        provider.resolve(DI);
+        expect(console.warn).calledWith(`Value of ${name} is undefined`).at.least(1);
+      });
+      it('should try to resolve optional argument', () => {
+        let scope = new DI.Scope().constant('a', 3);
+        let provider = new DI.Provider(a => a, ['?'], scope);
+        expect(provider.resolve(scope)).to.equal(3);
+      });
+      it('should return undefined for optional unresolvable argument', () => {
+        let provider = new DI.Provider(a => a, ['?'], DI);
+        expect(provider.resolve(DI)).to.be.undefined();
+      });
+    });
+
+    afterEach(done => {
+      DI.bindings[t.getSymbol(DI.bindings, 'values')] = new Map();
+      _.reset();
+      done();
+    });
+  });
+
+  </script>
+</body>
