@@ -16,13 +16,22 @@
 
   describe('Provider', () => {
     describe('#resolve', () => {
+      it('should replace = with the value from the argument', () => {
+        let scope = new DI.Scope().constant('a', 1);
+        let innerFn = _.spiedFunction().overrideReturn(4);
+        let fn = a => innerFn(a);
+
+        let provider = new DI.Provider(fn, ['='], new DI.Scope());
+        expect(provider.resolve(scope)).to.be.equal(4);
+        expect(innerFn).calledWith(1).at.least(1);
+      });
       it('should prefer the value from the local scope', () => {
         let localScope = new DI.Scope().constant('a', 1);
         let givenScope = new DI.Scope().constant('a', 2);
         let innerFn = _.spiedFunction().overrideReturn(4);
         let fn = a => innerFn(a);
 
-        let provider = new DI.Provider(fn, [], localScope);
+        let provider = new DI.Provider(fn, ['='], localScope);
         expect(provider.resolve(givenScope)).to.be.equal(4);
         expect(innerFn).calledWith(1).at.least(1);
       });
@@ -32,7 +41,7 @@
         let innerFn = _.spiedFunction().overrideReturn(4);
         let fn = a => innerFn(a);
 
-        let provider = new DI.Provider(fn, [], localScope);
+        let provider = new DI.Provider(fn, ['='], localScope);
         expect(provider.resolve(givenScope)).to.be.equal(4);
         expect(innerFn).calledWith(1).at.least(1);
       });
@@ -42,7 +51,16 @@
         let innerFn = _.spiedFunction().overrideReturn(4);
         let fn = a => innerFn(a);
 
-        let provider = new DI.Provider(fn, ['prefix'], localScope);
+        let provider = new DI.Provider(fn, ['prefix.='], localScope);
+        expect(provider.resolve(givenScope)).to.be.equal(4);
+        expect(innerFn).calledWith(1).at.least(1);
+      });
+      it('should remove any prefixes when encountering /', () => {
+        let givenScope = new DI.Scope().constant('prefix.a', 1);
+        let innerFn = _.spiedFunction().overrideReturn(4);
+        let fn = a => innerFn(a);
+
+        let provider = new DI.Provider(fn, ['/prefix.='], new DI.Scope().prefix('other.prefix'));
         expect(provider.resolve(givenScope)).to.be.equal(4);
         expect(innerFn).calledWith(1).at.least(1);
       });
@@ -52,7 +70,7 @@
         let innerFn = _.spiedFunction().overrideReturn(4);
         let fn = a => innerFn(a);
 
-        let provider = new DI.Provider(fn, [], new DI.Scope());
+        let provider = new DI.Provider(fn, ['='], new DI.Scope());
         expect(provider.resolve(givenScope)).to.be.equal(4);
         expect(innerFn).calledWith(2).at.least(1);
       });
@@ -71,7 +89,7 @@
             .constant('a', 1)
             .constant('b', 2);
 
-        let provider = new DI.Provider(fn, [], scope);
+        let provider = new DI.Provider(fn, ['=', '='], scope);
 
         expect(provider.resolve(scope)).to.be.equal(rv);
       });
@@ -99,12 +117,12 @@
       it('should throw exception if an argument cannot be found', () => {
         let name = 'name';
 
-        let provider = new DI.Provider(a => 3, [], DI, name);
+        let provider = new DI.Provider(a => 3, ['='], DI, name);
 
         expect(() => provider.resolve(DI)).to.throw(`${name}`);
       });
       it('should throw exception if an argument cannot be found for nameless provider', () => {
-        let provider = new DI.Provider(a => 3, [], DI);
+        let provider = new DI.Provider(a => 3, ['='], DI);
         expect(() => provider.resolve(DI)).to.throw('running expression');
       });
       it('should print warning if the function returns undefined', () => {
@@ -118,11 +136,11 @@
       });
       it('should try to resolve optional argument', () => {
         let scope = new DI.Scope().constant('a', 3);
-        let provider = new DI.Provider(a => a, ['?'], scope);
+        let provider = new DI.Provider(a => a, ['=?'], scope);
         expect(provider.resolve(scope)).to.equal(3);
       });
       it('should return undefined for optional unresolvable argument', () => {
-        let provider = new DI.Provider(a => a, ['?'], DI);
+        let provider = new DI.Provider(a => a, ['=?'], DI);
         expect(provider.resolve(DI)).to.be.undefined();
       });
     });

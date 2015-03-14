@@ -7,7 +7,7 @@ const __function__ = Symbol();
 const __localScope__ = Symbol('localScope');
 const __name__ = Symbol();
 const __prefix__ = Symbol('prefix');
-const __prefixes__ = Symbol();
+const __keys__ = Symbol();
 const __resolvedValues__ = Symbol();
 
 const FN_ARGS = /^function\s*[^\(]*\(\s*([^\)]*)\)/m;
@@ -19,15 +19,15 @@ class Provider {
    * @constructor
    * @param {Function} fn The function whose arguments should be resolved. The names will be used as
    *    the key.
-   * @param {Array} prefixes Array of prefixes to add to the given function's argument's names.
+   * @param {Array} keys Array of keys for the given function's argument's names.
    * @param {DI.Scope} localScope The local scope. This will be prioritized when checking for bound
    *    values.
    * @param {string} [name=null] Reference name of the provider. This is used for detecting cyclic
    *    dependencies.
    */
-  constructor(fn, prefixes, localScope, name = null) {
+  constructor(fn, keys, localScope, name = null) {
     this[__function__] = fn;
-    this[__prefixes__] = prefixes;
+    this[__keys__] = keys;
     this[__localScope__] = localScope;
     this[__name__] = name;
     this[__resolvedValues__] = new Map();
@@ -45,36 +45,38 @@ class Provider {
       let argsString = this[__function__].toString().match(FN_ARGS)[1];
       let args = argsString ? argsString.split(',') : [];
 
-      let resolvedArgs = args.map((arg, i) => {
-        let prefix = this[__prefixes__].length > i ? this[__prefixes__][i] : '';
-        arg = arg.trim();
+      let resolvedArgs = this[__keys__].map((key, i) => {
 
-        let optional = false;
-        let prefixEnd = prefix[prefix.length - 1];
-        if (prefixEnd === '?') {
-          prefix = prefix.substring(0, prefix.length - 1);
-          optional = true;
+        // Check if the key is optional.
+        let optional = key[key.length - 1] === '?';
+        if (optional) {
+          key = key.substring(0, key.length - 1);
         }
 
-        if (prefixEnd !== '/') {
-          arg = prefix ? `${prefix}.${arg}` : arg;
+        // Check if the key is root key.
+        let isRoot = key[0] === '/';
+        if (isRoot) {
+          key = key.substring(1);
         }
+
+        // Now replace any = in the key with the argument name.
+        key = key.replace('=', args[i] ? args[i].trim() : '');
 
         // TODO(gs): Handle cyclic dependency.
         let value;
 
         try {
           // Check the local scope first.
-          value = this[__localScope__][__get__](arg, scope);
+          value = this[__localScope__][__get__](key, scope);
 
           if (value === undefined) {
             // If value cannot be resolved in the local scope, check the given scope.
-            value = scope[__get__](arg, scope);
+            value = scope[__get__](key, scope);
           }
 
           if (value === undefined) {
             // If value cannot be resolved in the local scope, check the global bindings.
-            value = Globals.getGlobal(arg, scope);
+            value = Globals.getGlobal(key, scope);
           }
         } catch (e) {
           // TODO(gs): Make a shared method.
@@ -89,9 +91,9 @@ class Provider {
           if (optional) {
             return undefined;
           } else if (this[__name__]) {
-            throw `Cannot find ${arg} while providing ${this[__name__]}`;
+            throw `Cannot find ${key} while providing ${this[__name__]}`;
           } else {
-            throw `Cannot find ${arg} while running expression`;
+            throw `Cannot find ${key} while running expression`;
           }
         }
 
