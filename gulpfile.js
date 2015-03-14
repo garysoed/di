@@ -8,6 +8,7 @@ var subs   = require('gulp-html-subs');
 var babel  = require('gulp-babel');
 var zip    = require('gulp-zip');
 var rename = require('gulp-rename');
+var uglify = require('gulp-uglify');
 
 var chalk    = require('chalk');
 var karma    = require('karma').server;
@@ -153,9 +154,10 @@ gulp.task('watch', function() {
 });
 
 gulp.task('compile', ['src', 'test']);
-gulp.task('pack', ['src', 'ex'], function() {
-  return gulp.src('out/**/*')
-      .pipe(zip('bin.zip'))
-      .pipe(gulp.dest('dist'));
+gulp.task('pack', ['src'], function() {
+  return gulp.src('out/bin.js')
+      .pipe(uglify())
+      .pipe(rename('bin.min.js'))
+      .pipe(gulp.dest('out'));
 });
 gulp.task('check', ['karma']);
