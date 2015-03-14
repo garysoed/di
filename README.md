@@ -8,6 +8,11 @@ One of the main features of DI-JS is the ability for the developer to override a
 npm install --save-dev di-js
 ```
 
+To use this, include this in your html file:
+```html
+<script src="path/to/di-js/out/bin.js"></script>
+```
+
 # Basic Usage
 There are two main usages of DI-JS: Injecting and Binding
 
