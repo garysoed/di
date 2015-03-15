@@ -19,17 +19,17 @@ There are two main usages of DI-JS: Injecting and Binding
 ## Injecting
 DI-JS uses a *provider* pattern to manage injection. It looks like:
 ```javascript
-['global', 'service', function(URL, iceCream) {
+['global.URL', 'service.iceCream', function(URL, iceCream) {
   // Code using URL and calendar service
 }]
 ```
 
-A *provider* pattern consists of an array with a function as its last element. The rest of the array are prefixes for each of the function's arguments. In the example above, DI-JS will inject value bound to `global.URL` into `URL` and `service.iceCream` into `iceCream`.
+A *provider* pattern consists of an array with a function as its last element. The rest of the array are keys for each of the function's arguments. In the example above, DI-JS will inject value bound to `global.URL` into `URL` and `service.iceCream` into `iceCream`.
 
 ## Binding
 There are several ways to bind values. The most common one is to use the `DI.bind` method:
 ```javascript
-DI.bind('service.iceCream', ['service', function(http) {
+DI.bind('service.iceCream', ['service.http', function(http) {
   var Service = function() { };
   Service.prototype.getFlavors = function() {
     http.get();
@@ -45,7 +45,7 @@ The first argument to `DI.bind` is the key to bind the value to. The second argu
 Note that DI-JS lazily evaluates any providers. Calling `DI.bind` does not run the provider. The only time a provider is run is during injection or when calling `DI.run`:
 
 ```javascript
-DI.run(['service', function(iceCream) {
+DI.run(['service.iceCream', function(iceCream) {
   iceCream.getFlavors();
 }]);
 ```
@@ -60,10 +60,10 @@ One of the key features of DI-JS is the ability to override bound values. There 
 
 ```javascript
 DI
-    .with('baseUrl', ['service', function(location) {
+    .with('baseUrl', ['service.location', function(location) {
       return location.href;
     })
-    .bind('service.http', ['', function(baseUrl) {
+    .bind('service.http', ['baseUrl', function(baseUrl) {
       // ...
     }]);
 ```
@@ -72,7 +72,7 @@ In this example, `baseUrl` will be bound to the value of `service.location.href`
 
 ```javascript
 DI
-    .run(['', function(baseUrl) { // cannot resolve baseUrl
+    .run(['baseUrl', function(baseUrl) { // cannot resolve baseUrl
     }]);
 ```
 
@@ -81,7 +81,7 @@ However, you can override the value of `baseUrl`. For example:
 ```javascript
 DI
     .with('baseUrl', [function() { return 'https://testdomain.com'; }])
-    .run(['service', function(iceCream) {
+    .run(['service.iceCream', function(iceCream) {
       // service.iceCream will call testdomain.com
     }]);
 ```
@@ -95,7 +95,7 @@ Since DI-JS executes the provider lazily, `DI.constant` should be used for value
 ```javascript
 DI
     .constant('APP_ID', window['APP_ID'])
-    .bind('service.http', ['', '', function(baseUrl, APP_ID) {
+    .bind('service.http', ['baseUrl', 'APP_ID', function(baseUrl, appId) {
       // ...
     }]);
 ```
@@ -108,7 +108,7 @@ If you want to share your library with other users, you want to namespace your b
 DI
     .bind(
         'mine.tool.Example',
-        ['mine.service', 'mine.component', 'mine.service', '', 
+        ['mine.service.http', 'mine.component.textBox', 'mine.service.auth', 'HammerJS', 
         function(http, textBox, auth, HammerJS) {
           // ...
         }]);
@@ -121,21 +121,32 @@ DI
     .prefix('mine')
     .bind(
         'tool.Example',
-        ['service', 'component', 'service', '/', 
-        function(http, textBox, auth, HammerJS) {
+        ['service.http', 'component.textBox', 'service.auth', '/HammerJS', 
+        function(http, textBox, auth, hammer) {
           // ...
         }]);
 ```
 
-Note that the prefix for `HammerJS` is `'/'`. This tells DI-JS to ignore any prefixes when injecting that dependency.
+Note that the key for `hammer` is `'/HammerJS'`. `'/'` at the beginning of the key tells DI-JS to ignore any prefixes when injecting that dependency, so `hammer` will be injected with value bound to `HammerJS`
 
 ## Optional Dependencies
 There are cases where we want optional dependencies. To do this, add a `'?'` to the end of the prefix. For example:
 ```javascript
 DI
-    .run(['service?', function(plugin) {
+    .run(['service.plugin?', function(plugin) {
       // ...
     }]);
 ```
 
-DI-JS will inject `undefined` if `service.plugin` isn't bound. Otherwise, it will inject any bound `service.plugin`, as normal. Note that if you want to mix `'/'` and `'?'`, `'?'` must come at the end. So it is: `'/?'`.
+DI-JS will inject `undefined` if `service.plugin` isn't bound. Otherwise, it will inject any bound `service.plugin`, as normal.
+
+## Shortcut key
+You can use the argument's name as the key in providers. For instance:
+```javascript
+DI
+    .run(['service.=', function(http) {
+      // ...
+    }]);
+```
+
+Will inject `'service.http'` into `http`. Any `'='` in the key will be replaced by the corresponding argument in the function.
