@@ -29,6 +29,7 @@ class Provider {
   constructor(fn, keys, prefix, localScope, name = null) {
     this[__function__] = fn;
     this[__keys__] = keys;
+    this[__prefix__] = prefix;
     this[__localScope__] = localScope;
     this[__name__] = name;
     this[__resolvedValues__] = new Map();
@@ -58,6 +59,8 @@ class Provider {
         let isRoot = key[0] === '/';
         if (isRoot) {
           key = key.substring(1);
+        } else if (this[__prefix__]) {
+          key = `${this[__prefix__]}.${key}`;
         }
 
         // Now replace any = in the key with the argument name.

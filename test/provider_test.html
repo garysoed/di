@@ -51,7 +51,7 @@
         let innerFn = _.spiedFunction().overrideReturn(4);
         let fn = a => innerFn(a);
 
-        let provider = new DI.Provider(fn, ['prefix.='], '', localScope);
+        let provider = new DI.Provider(fn, ['='], 'prefix', localScope);
         expect(provider.resolve(givenScope)).to.be.equal(4);
         expect(innerFn).calledWith(1).at.least(1);
       });
