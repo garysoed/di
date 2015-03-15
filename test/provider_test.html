@@ -21,7 +21,7 @@
         let innerFn = _.spiedFunction().overrideReturn(4);
         let fn = a => innerFn(a);
 
-        let provider = new DI.Provider(fn, ['='], new DI.Scope());
+        let provider = new DI.Provider(fn, ['='], '', new DI.Scope());
         expect(provider.resolve(scope)).to.be.equal(4);
         expect(innerFn).calledWith(1).at.least(1);
       });
@@ -31,7 +31,7 @@
         let innerFn = _.spiedFunction().overrideReturn(4);
         let fn = a => innerFn(a);
 
-        let provider = new DI.Provider(fn, ['='], localScope);
+        let provider = new DI.Provider(fn, ['='], '', localScope);
         expect(provider.resolve(givenScope)).to.be.equal(4);
         expect(innerFn).calledWith(1).at.least(1);
       });
@@ -41,7 +41,7 @@
         let innerFn = _.spiedFunction().overrideReturn(4);
         let fn = a => innerFn(a);
 
-        let provider = new DI.Provider(fn, ['='], localScope);
+        let provider = new DI.Provider(fn, ['='], '', localScope);
         expect(provider.resolve(givenScope)).to.be.equal(4);
         expect(innerFn).calledWith(1).at.least(1);
       });
@@ -51,7 +51,7 @@
         let innerFn = _.spiedFunction().overrideReturn(4);
         let fn = a => innerFn(a);
 
-        let provider = new DI.Provider(fn, ['prefix.='], localScope);
+        let provider = new DI.Provider(fn, ['prefix.='], '', localScope);
         expect(provider.resolve(givenScope)).to.be.equal(4);
         expect(innerFn).calledWith(1).at.least(1);
       });
@@ -60,7 +60,11 @@
         let innerFn = _.spiedFunction().overrideReturn(4);
         let fn = a => innerFn(a);
 
-        let provider = new DI.Provider(fn, ['/prefix.='], new DI.Scope().prefix('other.prefix'));
+        let provider = new DI.Provider(
+            fn,
+            ['/prefix.='],
+            'other.prefix',
+            new DI.Scope().prefix('other.prefix'));
         expect(provider.resolve(givenScope)).to.be.equal(4);
         expect(innerFn).calledWith(1).at.least(1);
       });
@@ -70,7 +74,7 @@
         let innerFn = _.spiedFunction().overrideReturn(4);
         let fn = a => innerFn(a);
 
-        let provider = new DI.Provider(fn, ['='], new DI.Scope());
+        let provider = new DI.Provider(fn, ['='], '', new DI.Scope());
         expect(provider.resolve(givenScope)).to.be.equal(4);
         expect(innerFn).calledWith(2).at.least(1);
       });
@@ -89,14 +93,14 @@
             .constant('a', 1)
             .constant('b', 2);
 
-        let provider = new DI.Provider(fn, ['=', '='], scope);
+        let provider = new DI.Provider(fn, ['=', '='], '', scope);
 
         expect(provider.resolve(scope)).to.be.equal(rv);
       });
       it('should cache the result for the same scope', () => {
         let scope = {};
         let fn = _.spiedFunction().overrideReturn(3);
-        let provider = new DI.Provider(fn, [], scope);
+        let provider = new DI.Provider(fn, [], '', scope);
         provider.resolve(scope);
         provider.resolve(scope);
 
@@ -117,12 +121,12 @@
       it('should throw exception if an argument cannot be found', () => {
         let name = 'name';
 
-        let provider = new DI.Provider(a => 3, ['='], DI, name);
+        let provider = new DI.Provider(a => 3, ['='], '', DI, name);
 
         expect(() => provider.resolve(DI)).to.throw(`${name}`);
       });
       it('should throw exception if an argument cannot be found for nameless provider', () => {
-        let provider = new DI.Provider(a => 3, ['='], DI);
+        let provider = new DI.Provider(a => 3, ['='], '', DI);
         expect(() => provider.resolve(DI)).to.throw('running expression');
       });
       it('should print warning if the function returns undefined', () => {
@@ -130,17 +134,17 @@
 
         _.spy(console, 'warn').overrideReturn();
 
-        let provider = new DI.Provider(() => undefined, [], DI, name);
+        let provider = new DI.Provider(() => undefined, [], '', DI, name);
         provider.resolve(DI);
         expect(console.warn).calledWith(`Value of ${name} is undefined`).at.least(1);
       });
       it('should try to resolve optional argument', () => {
         let scope = new DI.Scope().constant('a', 3);
-        let provider = new DI.Provider(a => a, ['=?'], scope);
+        let provider = new DI.Provider(a => a, ['=?'], '', scope);
         expect(provider.resolve(scope)).to.equal(3);
       });
       it('should return undefined for optional unresolvable argument', () => {
-        let provider = new DI.Provider(a => a, ['=?'], DI);
+        let provider = new DI.Provider(a => a, ['=?'], '', DI);
         expect(provider.resolve(DI)).to.be.undefined();
       });
     });

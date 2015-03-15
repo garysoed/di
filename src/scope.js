@@ -29,11 +29,7 @@ class Scope {
 
   [__createProvider__](value, name = null) {
     let fn = value.splice(value.length - 1)[0];
-    let prefixes = value.map(prefix => {
-      return [this[__prefix__], prefix].filter(i => !!i).join('.');
-    });
-
-    return new Provider(fn, prefixes, this, name);
+    return new Provider(fn, value, this[__prefix__], this, name);
   }
 
   [__get__](key, scope) {

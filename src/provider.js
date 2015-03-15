@@ -20,12 +20,13 @@ class Provider {
    * @param {Function} fn The function whose arguments should be resolved. The names will be used as
    *    the key.
    * @param {Array} keys Array of keys for the given function's argument's names.
+   * @param {string} prefix The prefix to use for the keys.
    * @param {DI.Scope} localScope The local scope. This will be prioritized when checking for bound
    *    values.
    * @param {string} [name=null] Reference name of the provider. This is used for detecting cyclic
    *    dependencies.
    */
-  constructor(fn, keys, localScope, name = null) {
+  constructor(fn, keys, prefix, localScope, name = null) {
     this[__function__] = fn;
     this[__keys__] = keys;
     this[__localScope__] = localScope;
