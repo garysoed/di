@@ -19,13 +19,6 @@ var yuidoc   = require('yuidocjs');
 var browserify = require('browserify');
 var babelify = require('babelify');
 
-var options = minimist(process.argv.slice(2), {
-  'string': 'theme',
-  'default': {
-    'theme': './themes/slateblue.json'
-  }
-});
-
 function chain(fn) {
   return through.obj(function(file, enc, callback) {
     // TODO(gs): How to open a stream?
@@ -63,6 +56,16 @@ function subJsHint() {
   })
 }
 
+function subBabel() {
+  return chain(function(stream) {
+    var scriptSubs = subs('script');
+    return stream
+        .pipe(scriptSubs.extract)
+            .pipe(babel({modules: 'ignore', comments: false}))
+        .pipe(scriptSubs.inject);
+  });
+}
+
 function subBrowserifyBabel() {
   return through.obj(function (file, enc, next) {
     browserify(file.path, { debug: true })
@@ -78,23 +81,7 @@ function subBrowserifyBabel() {
   });
 }
 
-function readJsonTheme(file) {
-  var json = require(file);
-  var base = json.base ? readJsonTheme(json.base) : {};
-  for (var key in json.vars) {
-    base[key] = json.vars[key];
-  }
-  return base;
-}
-
-gulp.task('clean', shell.task('rm -r out doc'));
-
-gulp.task('doc-gen', shell.task('yuidoc --config yuidoc.json'));
-
-gulp.task('doc', ['demo', 'doc-gen'], function() {
-  return gulp.src(['doc/**'])
-      .pipe(gulp.dest('../di-doc'));
-});
+gulp.task('clean', shell.task('rm -r out'));
 
 gulp.task('jshint', function() {
   return gulp.src(['./src/**/*.js', './test/**/*.html'])
@@ -134,7 +121,7 @@ gulp.task('karma-dev', function(done) {
 
 gulp.task('watch', function() {
   // src
-  gulp.watch(['src/**/*.html', 'test/**/*.html'], function(event) {
+  gulp.watch(['src/**/*.js', 'test/**/*.html'], function(event) {
     var base = event.path.substring(__dirname.length).split('/')[1];
     gulp.src(event.path, {base: base})
         .pipe(plumber())
@@ -144,7 +131,7 @@ gulp.task('watch', function() {
   });
 
   // JSHint
-  gulp.watch(['src/**/*.html', 'test/**/*.html'], function(event) {
+  gulp.watch(['src/**/*.js', 'test/**/*.html'], function(event) {
     var base = event.path.substring(__dirname.length).split('/')[1];
     gulp.src(event.path, {base: base})
         .pipe(plumber())

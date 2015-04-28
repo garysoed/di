@@ -27,9 +27,8 @@ class Scope {
     this[__prefix__] = prefix;
   }
 
-  [__createProvider__](value, name = null) {
-    let fn = value.splice(value.length - 1)[0];
-    return new Provider(fn, value, this[__prefix__], this, name);
+  [__createProvider__](fn, keys, name = null) {
+    return new Provider(fn, keys, this[__prefix__], this, name);
   }
 
   [__get__](key, scope) {
@@ -50,14 +49,16 @@ class Scope {
    *
    * @method with
    * @param {string} key The key to bound the value to.
-   * @param {Function} fn The function to run. The function's arguments will be bound based on
-   *    their names.
+   * @param {Object} keys Object with mapping of variable name to the bound name.
+   * @param {Function} fn The function to run. The function will have one argument, containing
+   *    bound properties. Each property is named following they keys specified in the `keys`
+   *    attribute.
    * @return {DI.Scope} The newly created child scope.
    */
-  with(key, value) {
+  with(key, keys, fn) {
     let childScope = new Scope(this, this[__prefix__]);
     childScope[__localBindings__]
-        .add(append(this[__prefix__], key), this[__createProvider__](value, key));
+        .add(append(this[__prefix__], key), this[__createProvider__](fn, keys, key));
     return childScope;
   }
 
@@ -71,7 +72,7 @@ class Scope {
    * @return {DI.Scope} The newly created child scope.
    */
   constant(key, value) {
-    return this.with(key, [() => value]);
+    return this.with(key, {}, () => value);
   }
 
   /**
@@ -79,11 +80,13 @@ class Scope {
    *
    * @method bind
    * @param {string} key The key to bound the value to.
-   * @param {Function} fn The function to run. The function's arguments will be bound based on
-   *    their names.
+   * @param {Object} keys Object with mapping of variable name to the bound name.
+   * @param {Function} fn The function to run. The function will have one argument, containing
+   *    bound properties. Each property is named following they keys specified in the `keys`
+   *    attribute.
    */
-  bind(key, value) {
-    bindings.add(append(this[__prefix__], key), this[__createProvider__](value, key));
+  bind(key, keys, fn) {
+    bindings.add(append(this[__prefix__], key), this[__createProvider__](fn, keys, key));
     return this;
   }
 
@@ -112,8 +115,8 @@ class Scope {
    * @param {Function} fn The function to run. The function's arguments will be bound based on
    *    their names.
    */
-  run(fn) {
-    this[__createProvider__](fn).resolve(this);
+  run(keys, fn) {
+    this[__createProvider__](fn, keys).resolve(this);
   }
 
   /**

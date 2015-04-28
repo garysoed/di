@@ -23,7 +23,7 @@
         const __localBindings__ = t.getSymbol(scope, 'localBindings');
 
         let value = 'value';
-        let child = scope.with('a', [() => value]);
+        let child = scope.with('a', {}, () => value);
         expect(child[__parentScope__]).to.be.equal(scope);
         expect(child[__localBindings__].get('a').resolve(child)).to.be.equal(value);
       });
@@ -33,7 +33,7 @@
       it('should bind the given value and key globally', () => {
         let scope = new Scope();
         let value = 'value';
-        scope.bind('v', [() => value]);
+        scope.bind('v', {}, () => value);
         expect(DI.bindings.get('v').resolve(scope)).to.be.equal(value);
       });
     });
@@ -54,7 +54,7 @@
         expect(scope.get('a')).to.be.equal(1);
       });
       it('should resolve to the globally bound value', () => {
-        DI.bind('a', [() => 3]);
+        DI.bind('a', {}, () => 3);
         expect(DI.get('a')).to.be.equal(3);
       });
       it('should return undefined if no values is bound', () => {

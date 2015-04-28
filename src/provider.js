@@ -17,9 +17,9 @@ class Provider {
   /**
    * @class DI.Provider
    * @constructor
-   * @param {Function} fn The function whose arguments should be resolved. The names will be used as
-   *    the key.
-   * @param {Array} keys Array of keys for the given function's argument's names.
+   * @param {Function} fn The function to run. The function should take one argument, which is an
+   *    object that will contain the injected values, keyed by the given keys.
+   * @param {Object} keys Mapping of objects to inject to the function.
    * @param {string} prefix The prefix to use for the keys.
    * @param {DI.Scope} localScope The local scope. This will be prioritized when checking for bound
    *    values.
@@ -44,10 +44,9 @@ class Provider {
    */
   resolve(scope) {
     if (!this[__resolvedValues__].has(scope)) {
-      let argsString = this[__function__].toString().match(FN_ARGS)[1];
-      let args = argsString ? argsString.split(',') : [];
-
-      let resolvedArgs = this[__keys__].map((key, i) => {
+      let resolvedArgs = {};
+      for (let argName in this[__keys__]) {
+        let key = this[__keys__][argName];
 
         // Check if the key is optional.
         let optional = key[key.length - 1] === '?';
@@ -64,7 +63,7 @@ class Provider {
         }
 
         // Now replace any = in the key with the argument name.
-        key = key.replace('=', args[i] ? args[i].trim() : '');
+        key = key.replace('=', argName.trim());
 
         // TODO(gs): Handle cyclic dependency.
         let value;
@@ -93,21 +92,21 @@ class Provider {
 
         if (value === undefined) {
           if (optional) {
-            return undefined;
+            resolvedArgs[argName] = undefined;
           } else if (this[__name__]) {
             throw `Cannot find ${key} while providing ${this[__name__]}`;
           } else {
             throw `Cannot find ${key} while running expression`;
           }
+        } else {
+          resolvedArgs[argName] = value;
         }
-
-        return value;
-      });
+      }
 
       let value;
 
       try {
-        value = this[__function__].apply(null, resolvedArgs);
+        value = this[__function__](resolvedArgs);
       } catch (e) {
         if (this[__name__]) {
           throw `Uncaught exception ${e}\n\twhile running provider ${this[__name__]}`;
