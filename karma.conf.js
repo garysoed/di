@@ -15,6 +15,7 @@ module.exports = function(config) {
 
     // list of files / patterns to load in the browser
     files: [
+      { pattern: 'node_modules/babelify/**', included: false },
       { pattern: 'node_modules/spies/**', included: false },
       { pattern: 'out/bin.js', included: false },
       { pattern: 'out/testutils.html', included: false },
