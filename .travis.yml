@@ -7,5 +7,8 @@ before_script:
     - 'sh -e /etc/init.d/xvfb start'
     - 'npm install -g bower karma grunt-cli jshint'
     - 'npm install'
+    - 'cd node_modules/spies'
+    - 'npm install'
+    - 'cd -'
 script:
     - 'gulp check'
