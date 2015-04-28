@@ -10,5 +10,6 @@ before_script:
     - 'cd node_modules/spies'
     - 'npm install'
     - 'cd -'
+    - 'ls -alF node_modules'
 script:
     - 'gulp check'
