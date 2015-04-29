@@ -9,6 +9,8 @@ before_script:
     - 'npm install'
     - 'cd node_modules/spies'
     - 'npm install'
+    - 'cp -R ../traceur node_modules/'
+    - 'cp -R ../chai node_modules/'
     - 'cd -'
     - 'ls -alF node_modules/spies/node_modules'
     - 'ls -alF node_modules/spies/node_modules/chai'
