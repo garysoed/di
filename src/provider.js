@@ -12,6 +12,10 @@ const __resolvedValues__ = Symbol();
 
 const FN_ARGS = /^function\s*[^\(]*\(\s*([^\)]*)\)/m;
 
+function createError(msg, cause) {
+  return new Error(`${msg}\nCaused by:\n${cause.stack}`);
+}
+
 class Provider {
 
   /**
@@ -45,7 +49,7 @@ class Provider {
   resolve(scope) {
     if (!this[__resolvedValues__].has(scope)) {
       let resolvedArgs = {};
-      for (let argName in this[__keys__]) {
+      for (let argName of Object.keys(this[__keys__])) {
         let key = this[__keys__][argName];
 
         // Check if the key is optional.
@@ -84,9 +88,9 @@ class Provider {
         } catch (e) {
           // TODO(gs): Make a shared method.
           if (this[__name__]) {
-            throw `${e}\n\twhile providing ${this[__name__]}`;
+            throw createError(`${e}\n\twhile providing ${this[__name__]}`, e);
           } else {
-            throw `${e}\n\twhile running expression`;
+            throw createError(`${e}\n\twhile running expression`, e);
           }
         }
 
@@ -94,9 +98,9 @@ class Provider {
           if (optional) {
             resolvedArgs[argName] = undefined;
           } else if (this[__name__]) {
-            throw `Cannot find ${key} while providing ${this[__name__]}`;
+            throw new Error(`Cannot find ${key} while providing ${this[__name__]}`);
           } else {
-            throw `Cannot find ${key} while running expression`;
+            throw new Error(`Cannot find ${key} while running expression`);
           }
         } else {
           resolvedArgs[argName] = value;
@@ -109,9 +113,10 @@ class Provider {
         value = this[__function__](resolvedArgs);
       } catch (e) {
         if (this[__name__]) {
-          throw `Uncaught exception ${e}\n\twhile running provider ${this[__name__]}`;
+          throw createError(
+              `Uncaught exception ${e}\n\twhile running provider ${this[__name__]}`, e);
         } else {
-          throw `Uncaught exception ${e}\n\twhile running expression`;
+          throw createError(`Uncaught exception ${e}\n\twhile running expression`, e);
         }
       }
 

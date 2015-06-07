@@ -44,6 +44,7 @@
     "minimist": "^1.1.1",
     "mocha": "^2.2.1",
     "spies": "git://github.com/garysoed/spies",
+    "stream-combiner": "^0.2.2",
     "through2": "^0.6.3",
     "traceur": "0.0.72",
     "vinyl-source-stream": "^1.1.0",

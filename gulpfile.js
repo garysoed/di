@@ -11,6 +11,7 @@ var rename = require('gulp-rename');
 var uglify = require('gulp-uglify');
 
 var chalk    = require('chalk');
+var combine  = require('stream-combiner');
 var karma    = require('karma').server;
 var minimist = require('minimist');
 var through  = require('through2');
@@ -19,51 +20,24 @@ var yuidoc   = require('yuidocjs');
 var browserify = require('browserify');
 var babelify = require('babelify');
 
-function chain(fn) {
-  return through.obj(function(file, enc, callback) {
-    // TODO(gs): How to open a stream?
-    var stream = gulp.src('')
-        .pipe(plumber({
-          errorHandler: function(err) {
-            this.emit('error', err);
-          }.bind(this)
-        }))
-        .pipe(through.obj(function(f, enc, cb) {
-          cb(null, file);
-        }));
-    fn(stream)
-        .pipe(through.obj(function(f, enc, cb) {
-          this.push(f);
-          cb(null, f);
-        }.bind(this), function(cb) {
-          callback();
-          cb();
-        }));
-  });
-}
-
 function subJsHint() {
-  return chain(function(stream) {
-    return stream
-        .pipe(jshint.extract())
-        .pipe(jshint({
-          esnext: true,
-          laxbreak: true,
-          sub: true
-        }))
-        .pipe(jshint.reporter('jshint-stylish'))
-        .pipe(jshint.reporter('fail'));
-  })
+  return combine(
+      jshint.extract(),
+      jshint({
+        esnext: true,
+        laxbreak: true,
+        sub: true
+      }),
+      jshint.reporter('jshint-stylish'),
+      jshint.reporter('fail'));
 }
 
 function subBabel() {
-  return chain(function(stream) {
     var scriptSubs = subs('script');
-    return stream
-        .pipe(scriptSubs.extract)
-            .pipe(babel({modules: 'ignore', comments: false}))
-        .pipe(scriptSubs.inject);
-  });
+  return combine(
+      scriptSubs.extract,
+      babel({modules: 'ignore', comments: false}),
+      scriptSubs.inject);
 }
 
 function subBrowserifyBabel() {
@@ -105,7 +79,7 @@ gulp.task('test', ['jshint', 'src'], function() {
       .pipe(gulp.dest('out'));
 });
 
-gulp.task('karma', ['src', 'test'], function(done) {
+gulp.task('karma', ['compile'], function(done) {
   karma.start({
     configFile: __dirname + '/karma.conf.js',
     singleRun: true
@@ -141,7 +115,7 @@ gulp.task('watch', function() {
 });
 
 gulp.task('compile', ['src', 'test']);
-gulp.task('pack', ['src'], function() {
+gulp.task('pack', ['compile'], function() {
   return gulp.src('out/bin.js')
       .pipe(uglify())
       .pipe(rename('bin.min.js'))
