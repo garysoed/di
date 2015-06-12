@@ -3,7 +3,7 @@ dependencies:
     - sudo apt-get update
     - sudo apt-get install google-chrome-stable
     - cd node_modules/spies
-    - npm install --dev
+    - ln -s ../../traceur traceur
     - cd -
 
 test:
