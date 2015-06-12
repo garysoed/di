@@ -2,10 +2,6 @@ dependencies:
   pre:
     - sudo apt-get update
     - sudo apt-get install google-chrome-stable
-    - sudo apt-get install npm
-    - npm --version
-    - npm config set registry https://registry.npmjs.org/
-    - sudo npm install -g gulp
 
 test:
   override:
