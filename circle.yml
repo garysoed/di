@@ -2,6 +2,8 @@ dependencies:
   pre:
     - sudo apt-get update
     - sudo apt-get install google-chrome-stable
+  post:
+    - pwd
     - cd node_modules/spies
     - ln -s ../../traceur traceur
     - cd -
