@@ -3,12 +3,7 @@ dependencies:
     - sudo apt-get update
     - sudo apt-get install google-chrome-stable
   post:
-    - pwd
-    - cd node_modules/spies
-    - npm install
-    - ls
-    - cd ../..
-    - ls node_modules/spies/node_modules
+    - pwd; cd node_modules/spies; npm install; ls; cd ../..; ls node_modules/spies/node_modules
 
 test:
   override:
