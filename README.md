@@ -1,5 +1,7 @@
 # DI-JS
 
+[![Circle CI](https://circleci.com/gh/garysoed/di.svg?style=svg)](https://circleci.com/gh/garysoed/di)
+
 DI-JS is a simple Dependency Injection for JavaScript for the Web. Unlike ES6's module, this is written to work with HTML Imports and libraries not using ES6 module.
 
 One of the main features of DI-JS is the ability for the developer to override any bindings. This makes testing and writing customizable frameworks easier.
