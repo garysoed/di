@@ -63,14 +63,14 @@ gulp.task('jshint', function() {
       .pipe(subJsHint());
 });
 
-gulp.task('src', ['jshint'], function() {
+gulp.task('source', ['jshint'], function() {
   return gulp.src('./src/index.js')
       .pipe(subBrowserifyBabel())
       .pipe(rename('bin.js'))
       .pipe(gulp.dest('out'));
 });
 
-gulp.task('test', ['jshint', 'src'], function() {
+gulp.task('test-source', ['jshint', 'source'], function() {
   var scriptSubs = subs('script[lang="es6"]');
   return gulp.src(['./test/**/*_test.html', './test/testutils.html'])
       .pipe(scriptSubs.extract)
@@ -79,14 +79,14 @@ gulp.task('test', ['jshint', 'src'], function() {
       .pipe(gulp.dest('out'));
 });
 
-gulp.task('karma', ['compile'], function(done) {
+gulp.task('test', ['compile'], function(done) {
   karma.start({
     configFile: __dirname + '/karma.conf.js',
     singleRun: true
   }, done);
 });
 
-gulp.task('karma-dev', function(done) {
+gulp.task('test-server', function(done) {
   karma.start({
     configFile: __dirname + '/karma.conf.js',
     singleRun: false
@@ -114,7 +114,7 @@ gulp.task('watch', function() {
   });
 });
 
-gulp.task('compile', ['src', 'test']);
+gulp.task('compile', ['source', 'test-source']);
 gulp.task('pack', ['compile'], function() {
   return gulp.src('out/bin.js')
       .pipe(uglify())
