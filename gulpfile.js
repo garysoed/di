@@ -122,4 +122,3 @@ gulp.task('pack', ['compile'], function() {
       .pipe(rename('bin.min.js'))
       .pipe(gulp.dest('out'));
 });
-gulp.task('check', ['karma']);
