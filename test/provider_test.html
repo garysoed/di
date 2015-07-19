@@ -127,7 +127,7 @@
         let fn = createFakeProviderFn(4);
         let provider = new DI.Provider(fn, '', DI);
         provider.resolve(DI);
-        expect(fn.optional('a')).to.be.undefined();
+        expect(fn.optional('a')).to.be.undefined;
       });
     });
 

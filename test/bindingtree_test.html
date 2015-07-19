@@ -56,10 +56,10 @@
         expect(tree.get('b_b')).to.be.equal('bB');
       });
       it('should return undefined if value cannot be found', () => {
-        expect(tree.get('d')).to.be.undefined();
+        expect(tree.get('d')).to.be.undefined;
       });
       it('should return undefined if duplicate values cannot be resolved.', () => {
-        expect(tree.get('b')).to.be.undefined();
+        expect(tree.get('b')).to.be.undefined;
       });
     });
 

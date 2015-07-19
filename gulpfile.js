@@ -26,7 +26,8 @@ function subJsHint() {
       jshint({
         esnext: true,
         laxbreak: true,
-        sub: true
+        sub: true,
+        expr: true
       }),
       jshint.reporter('jshint-stylish'),
       jshint.reporter('fail'));
