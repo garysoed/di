@@ -1,4 +1,4 @@
-import BindingTree from './bindingtree';
+<html><head></head><body>import BindingTree from './bindingtree';
 import Provider from './provider';
 import Globals from './globals';
 
@@ -71,7 +71,7 @@ class Scope {
    * @return {DI.Scope} The newly created child scope.
    */
   constant(key, value) {
-    return this.with(key, () => value);
+    return this.with(key, () =&gt; value);
   }
 
   /**
@@ -131,7 +131,8 @@ class Scope {
 }
 
 function append(l, r) {
-  return [l, r].filter(i => !!i).join('.');
+  return [l, r].filter(i =&gt; !!i).join('.');
 }
 
 export default Scope;
+</body></html>

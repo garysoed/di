@@ -1,4 +1,4 @@
-import Globals from './globals';
+<html><head></head><body>import Globals from './globals';
 
 const __get__ = Globals.get;
 
@@ -108,11 +108,11 @@ class Provider {
    */
   resolve(scope) {
     if (!this[__resolvedValues__].has(scope)) {
-      let optional = key => {
+      let optional = key =&gt; {
         return this[__searchValue__](key, scope);
       };
 
-      let require = key => {
+      let require = key =&gt; {
         let value = optional(key);
         if (value === undefined) {
           if (this[__name__]) {
@@ -137,7 +137,7 @@ class Provider {
         }
       }
 
-      if (value === undefined && this[__name__]) {
+      if (value === undefined &amp;&amp; this[__name__]) {
         console.warn(`Value of ${this[__name__]} is undefined`);
       }
 
@@ -149,3 +149,4 @@ class Provider {
 }
 
 export default Provider;
+</body></html>

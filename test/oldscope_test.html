@@ -2,7 +2,7 @@
 <html>
 <head>
   <base href=".">
-  <title>BindingTree Unit Tests</title>
+  <title>OldScope Unit Tests</title>
 
   <link rel="import" href="testutils.html">
 
@@ -12,19 +12,20 @@
 </head>
 <body>
   <script lang="es6">
-  let Scope = DIJS.Scope;
+  let OldScope = DI.OldScope;
   let expect = chai.expect;
   let _ = spies.Spies;
+  let bindings = DI.bindings;
 
-  describe('Scope', () => {
+  describe('OldScope', () => {
     describe('#with', () => {
       it('should return a child scope with the local binding added and parent reference', () => {
-        let scope = new Scope();
+        let scope = new OldScope();
         const __parentScope__ = t.getSymbol(scope, 'parentScope');
         const __localBindings__ = t.getSymbol(scope, 'localBindings');
 
         let value = 'value';
-        let child = scope.with('a', () => value);
+        let child = scope.with('a', {}, () => value);
         expect(child[__parentScope__]).to.be.equal(scope);
         expect(child[__localBindings__].get('a').resolve(child)).to.be.equal(value);
       });
@@ -32,30 +33,30 @@
 
     describe('#bind', () => {
       it('should bind the given value and key globally', () => {
-        let scope = new Scope();
+        let scope = new OldScope();
         let value = 'value';
-        scope.bind('v', () => value);
-        expect(DI.bindings.get('v').resolve(scope)).to.be.equal(value);
+        scope.bind('v', {}, () => value);
+        expect(bindings.get('v').resolve(scope)).to.be.equal(value);
       });
     });
 
     describe('#get', () => {
       it('should resolve the value bound in the local scope first', () => {
-        DIJS.bind('a', () => 3);
+        DI.bind('a', {}, () => 3);
         let scope = DI
             .constant('a', 1)
             .constant('a', 2);
         expect(scope.get('a')).to.be.equal(2);
       });
       it('should resolve the value bound in the parent scope', () => {
-        DIJS.bind('a', () => 3);
+        DI.bind('a', {}, () => 3);
         let scope = DI
             .constant('a', 1)
             .constant('b', 2);
         expect(scope.get('a')).to.be.equal(1);
       });
       it('should resolve to the globally bound value', () => {
-        DIJS.bind('a', () => 3);
+        DI.bind('a', {}, () => 3);
         expect(DI.get('a')).to.be.equal(3);
       });
       it('should return undefined if no values is bound', () => {
@@ -70,7 +71,8 @@
       });
     });
 
-    afterEach(function (done) {
+    afterEach(done => {
+      bindings[t.getSymbol(bindings, 'values')] = new Map();
       DI.bindings[t.getSymbol(DI.bindings, 'values')] = new Map();
       _.reset();
       done();
