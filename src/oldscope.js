@@ -19,7 +19,7 @@ function wrap(keys, fn) {
       if (isOptional) {
         injector[argName] = optional(key);
       } else {
-        injector[argName] = required(key);
+        injector[argName] = require(key);
       }
     }
     return fn(injector);
