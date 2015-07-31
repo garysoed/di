@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base href=".">
+  <title>Functional Tests</title>
+
+  <link rel="import" href="testutils.html">
+  <link rel="import" href="../node_modules/spies/main_chai_expect.html">
+
+  <script src="bin.js"></script>
+</head>
+<body>
+  <script lang="es6">
+  let expect = chai.expect;
+
+  describe('Functional tests', () => {
+    it('should create separate instances of bound value in two different runs', () => {
+      DIJS.bind('value', () => {
+        return {};
+      });
+
+      let firstValue = DIJS.run(require => {
+        return require('value');
+      });
+      let secondValue = DIJS.run(require => {
+        return require('value');
+      });
+
+      expect(firstValue).to.not.equal(secondValue);
+    });
+    it('should override values bound with `bind` with values bound with `with`', done => {
+      DIJS.bind('value', () => 1);
+      DIJS
+          .with('value', () => 2)
+          .run(require => {
+            expect(require('value')).to.equal(2);
+            done();
+          });
+    });
+    it('should override values bound with `bind` with values bound with `constant`', done => {
+      DIJS.bind('value', () => 1);
+      DIJS
+          .constant('value', 2)
+          .run(require => {
+            expect(require('value')).to.equal(2);
+            done();
+          });
+    });
+    it('should use the same instance of bound values within the same run context', done => {
+      DIJS.bind('value', () => {
+        return {};
+      });
+
+      DIJS.run(require => {
+        expect(require('value')).to.equal(require('value'));
+        done();
+      });
+    });
+    it('should ignore values bound with `with` unless in `run` context', done => {
+      DIJS
+          .with('a', () => 1)
+          .bind('value', require => {
+            return require('a');
+          });
+
+      DIJS
+          .with('a', () => 2)
+          .run(require => {
+            expect(require('value')).to.equal(2);
+            done();
+          });
+    });
+
+    afterEach(done => {
+      DIJS.reset();
+      done();
+    });
+  });
+  </script>
+</body>

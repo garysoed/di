@@ -12,68 +12,136 @@
 </head>
 <body>
   <script lang="es6">
-  let Scope = DIJS.Scope;
+
   let expect = chai.expect;
-  let _ = spies.Spies;
 
   describe('Scope', () => {
-    describe('#with', () => {
-      it('should return a child scope with the local binding added and parent reference', () => {
-        let scope = new Scope();
-        const __parentScope__ = t.getSymbol(scope, 'parentScope');
-        const __localBindings__ = t.getSymbol(scope, 'localBindings');
+    let scope;
 
-        let value = 'value';
-        let child = scope.with('a', () => value);
-        expect(child[__parentScope__]).to.be.equal(scope);
-        expect(child[__localBindings__].get('a').resolve(child)).to.be.equal(value);
+    beforeEach(done => {
+      scope = new DIJS.Scope();
+      done();
+    });
+
+    function getLocalProvider(scope, key) {
+      return t.getSymbolValue(scope, 'localBindings').get(key);
+    }
+
+    describe('#with', () => {
+      it('should return a child scope with the given provider bound', () => {
+        let provider = () => 1;
+        let childScope = scope.with('key', provider);
+
+        expect(getLocalProvider(childScope, 'key')).to.equal(provider);
+        expect(t.getSymbolValue(childScope, 'parentScope')).to.equal(scope);
+      });
+    });
+
+    describe('#constant', () => {
+      it('should return a child scope with the given constant bound', () => {
+        let childScope = scope.constant('key', 1);
+
+        expect(getLocalProvider(childScope, 'key')()).to.equal(1);
+        expect(t.getSymbolValue(childScope, 'parentScope')).to.equal(scope);
       });
     });
 
     describe('#bind', () => {
-      it('should bind the given value and key globally', () => {
-        let scope = new Scope();
-        let value = 'value';
-        scope.bind('v', () => value);
-        expect(DI.bindings.get('v').resolve(scope)).to.be.equal(value);
+      it('should bind the provider to the root scope', () => {
+        let provider = () => 1;
+        let descendant = scope.constant('a', 1).constant('b', 2);
+        descendant.bind('c', provider);
+
+        expect(getLocalProvider(scope, 'c')).to.equal(provider);
+      });
+      it('should return the current scope', () => {
+        expect(scope.bind('a', () => 1)).to.equal(scope);
+      });
+      it('should throw error if a key is being bound twice', () => {
+        scope.bind('a', () => 1);
+
+        expect(() => { scope.bind('a', () => 2); }).to.throw('already bound');
       });
     });
 
-    describe('#get', () => {
-      it('should resolve the value bound in the local scope first', () => {
-        DIJS.bind('a', () => 3);
-        let scope = DI
+    describe('#run', () => {
+      it('should pass a require and optional function into the provider function', done => {
+        scope.run((require, optional) => {
+          expect(require).to.be.instanceof(Function);
+          expect(optional).to.be.instanceof(Function);
+          done();
+        });
+      });
+    });
+
+    describe('optional', () => {
+      it('should return the previously bound value', done => {
+        scope
+            .constant('a', 1)
+            .run((require, optional) => {
+              expect(optional('a')).to.equal(1);
+              done();
+            });
+      });
+      it('should return the previously returned value', done => {
+        scope
+            .constant('a', {})
+            .run((require, optional) => {
+              expect(optional('a')).to.equal(optional('a'));
+              done();
+            });
+      });
+      it('should return undefined for unbound value', done => {
+        scope.run((require, optional) => {
+              expect(optional('a')).to.be.undefined;
+              done();
+            });
+      });
+    });
+
+    describe('require', () => {
+      it('should return the previously bound value', done => {
+        scope
+            .constant('a', 1)
+            .run(require => {
+              expect(require('a')).to.equal(1);
+              done();
+            });
+      });
+      it('should return the previously returned value', done => {
+        scope
+            .constant('a', {})
+            .run(require => {
+              expect(require('a')).to.equal(require('a'));
+              done();
+            });
+      });
+      it('should throw error for unbound value', done => {
+        scope.run(require => {
+          expect(() => require('a')).to.throw('a');
+          done();
+        });
+      });
+    });
+
+    describe('__findProvider__', () => {
+      const __findProvider__ = t.getSymbol(DIJS.Scope.prototype, 'findProvider');
+
+      it('should favor provider bound locally', () => {
+        let descendant = scope
             .constant('a', 1)
             .constant('a', 2);
-        expect(scope.get('a')).to.be.equal(2);
+        expect(descendant[__findProvider__]('a')()).to.equal(2);
       });
-      it('should resolve the value bound in the parent scope', () => {
-        DIJS.bind('a', () => 3);
-        let scope = DI
+      it('should fallback to provider bound in the parent scope', () => {
+        let descendant = scope
             .constant('a', 1)
             .constant('b', 2);
-        expect(scope.get('a')).to.be.equal(1);
+        expect(descendant[__findProvider__]('a')()).to.equal(1);
       });
-      it('should resolve to the globally bound value', () => {
-        DIJS.bind('a', () => 3);
-        expect(DI.get('a')).to.be.equal(3);
+      it('should return undefined if no provider is bound', () => {
+        expect(scope[__findProvider__]('a')).to.be.undefined;
       });
-      it('should return undefined if no values is bound', () => {
-        expect(DI.get('a')).to.be.undefined;
-      });
-    });
-
-    describe('#prefix', () => {
-      it('should append the given prefix to the existing prefix in the scope', () => {
-        let scope = DI.prefix('a').prefix('b');
-        expect(scope[t.getSymbol(scope, 'prefix')]).to.be.equal('b.a');
-      });
-    });
-
-    afterEach(function (done) {
-      DI.bindings[t.getSymbol(DI.bindings, 'values')] = new Map();
-      _.reset();
-      done();
     });
   });
   </script>

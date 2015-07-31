@@ -1,16 +1,11 @@
-import BindingTree from './bindingtree';
-import Provider from './provider';
-import Globals from './globals';
-
-
 // Private symbols.
 const __localBindings__ = Symbol('localBindings');
 const __parentScope__ = Symbol('parentScope');
 const __prefix__ = Symbol('prefix');
+const __rootScope__ = Symbol('rootScope');
 
-const __createProvider__ = Symbol();
-
-const __get__ = Globals.get;
+const __registerProvider__ = Symbol('registerProvider');
+const __findProvider__ = Symbol('findProvider');
 
 class Scope {
   /**
@@ -20,44 +15,47 @@ class Scope {
    * @constructor
    * @param {DI.Scope} [parentScope=null] The parent scope.
    */
-  constructor(parentScope = null, prefix = '') {
-    this[__localBindings__] = new BindingTree();
+  constructor(parentScope = null, rootScope = this) {
+    this[__localBindings__] = new Map();
     this[__parentScope__] = parentScope;
-    this[__prefix__] = prefix;
+    this[__rootScope__] = rootScope;
   }
 
-  [__createProvider__](fn, name = null) {
-    return new Provider(fn, this[__prefix__], this, name);
+  [__registerProvider__](normalizedKey, fn) {
+    if (this[__localBindings__].has(normalizedKey)) {
+      throw new Error(`${normalizedKey} is already bound`);
+    }
+    this[__localBindings__].set(normalizedKey, fn);
   }
 
-  [__get__](key, scope) {
-    let provider = this[__localBindings__].get(key);
+  [__findProvider__](normalizedKey) {
+    // Checks the local binding.
+    let provider = this[__localBindings__].get(normalizedKey);
     if (provider === undefined) {
       if (this[__parentScope__]) {
-        return this[__parentScope__][__get__](key, scope);
+        return this[__parentScope__][__findProvider__](normalizedKey);
       } else {
         return undefined;
       }
     } else {
-      return provider.resolve(scope);
+      return provider;
     }
   }
 
   /**
    * Creates a new child scope with the given value bound to the given key in its local binding.
    *
+   * TODO(gs)
+   *
    * @method with
    * @param {string} key The key to bound the value to.
    * @param {Object} keys Object with mapping of variable name to the bound name.
-   * @param {Function} fn The function to run. The function will have one argument, containing
-   *    bound properties. Each property is named following they keys specified in the `keys`
-   *    attribute.
+   * @param {Function} fn The provider function to run.
    * @return {DI.Scope} The newly created child scope.
    */
   with(key, fn) {
-    let childScope = new Scope(this, this[__prefix__]);
-    childScope[__localBindings__]
-        .add(append(this[__prefix__], key), this[__createProvider__](fn, key));
+    let childScope = new Scope(this, this[__rootScope__]);
+    childScope[__registerProvider__](key, fn);
     return childScope;
   }
 
@@ -75,63 +73,62 @@ class Scope {
   }
 
   /**
-   * Globally binds the given value to the given key.
+   * Binds the given value to the given key. The execution scope of the provider function is still
+   * this scope.
+   *
+   * TODO(gs)
    *
    * @method bind
    * @param {string} key The key to bound the value to.
    * @param {Object} keys Object with mapping of variable name to the bound name.
-   * @param {Function} fn The function to run. The function will have one argument, containing
-   *    bound properties. Each property is named following they keys specified in the `keys`
-   *    attribute.
+   * @param {Function} fn The provider function to run.
    */
   bind(key, fn) {
-    Globals.bindings.add(append(this[__prefix__], key), this[__createProvider__](fn, key));
+    this[__rootScope__][__registerProvider__](key, fn);
     return this;
-  }
-
-  /**
-   * Returns the provider bound to the given key and resolve it in this scope. This will first check
-   * for the local bindings, then its ancestors. If no binding is found in the ancestral path, this
-   * will check for the global bindings.
-   *
-   * @method get
-   * @param {string} key Key whose bound value should be returned.
-   * @return {any} The value bound to the given key, or undefined if no values can be found.
-   */
-  get(key) {
-    let value = this[__get__](append(this[__prefix__], key));
-    if (value === undefined) {
-      return Globals.getGlobal(key, this);
-    } else {
-      return value;
-    }
   }
 
   /**
    * Runs the given function after injecting any dependencies.
    *
+   * TODO(gs)
+   *
    * @method run
-   * @param {Function} fn The function to run. The function's arguments will be bound based on
-   *    their names.
+   * @param {Function} fn The function to run.
    */
   run(fn) {
-    this[__createProvider__](fn).resolve(this);
+    let resolvedValues = new Map();
+
+    let optional = key => {
+      let normalizedKey = key;
+      if (resolvedValues.has(normalizedKey)) {
+        return resolvedValues.get(normalizedKey);
+      }
+
+      let provider = this[__findProvider__](normalizedKey);
+      if (provider === undefined) {
+        return undefined;
+      } else {
+        let value = provider(require, optional);
+        resolvedValues.set(normalizedKey, value);
+        return value;
+      }
+    };
+
+    let require = key => {
+      let value = optional(key);
+      if (value === undefined) {
+        throw new Error(`Cannot find ${key}`);
+      }
+      return value;
+    };
+
+    return fn(require, optional);
   }
 
-  /**
-   * Prefix any keys given to this scope with the given prefix.
-   *
-   * @method prefix
-   * @param {string} prefix The prefix to add.
-   * @return {DI.Scope} The newly created child scope with the given prefix.
-   */
-  prefix(prefix) {
-    return new Scope(this, append(prefix, this[__prefix__]));
+  reset() {
+    this[__localBindings__].clear();
   }
-}
-
-function append(l, r) {
-  return [l, r].filter(i => !!i).join('.');
 }
 
 export default Scope;
