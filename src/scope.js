@@ -1,4 +1,5 @@
 import Binding from './binding';
+import RunContext from './runcontext';
 
 // Private symbols.
 const __localBindings__ = Symbol('localBindings');
@@ -56,8 +57,8 @@ class Scope {
    * @return {DI.Scope} The newly created child scope.
    */
   with(key, fn) {
-    let binding = new Binding(key, fn, this);
     let childScope = new Scope(this, this[__rootScope__]);
+    let binding = new Binding(key, fn, childScope);
     childScope[__addBinding__](key, binding);
     return childScope;
   }
@@ -104,7 +105,7 @@ class Scope {
     let runBinding = new Binding(null, fn, this);
 
     // Resolves all the bindings in the current scope.
-    let resolvedValues = new Map();
+    let resolvedValues = new RunContext();
 
     let resolveBindings = function(scope) {
       for (let [key, binding] of scope[__localBindings__]) {

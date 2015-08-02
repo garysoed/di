@@ -12,7 +12,7 @@
 </head>
 <body>
   <script lang="es6">
-
+  const RunContext = DIJS.RunContext;
   let expect = chai.expect;
 
   describe('Scope', () => {
@@ -31,8 +31,10 @@
       it('should return a child scope with the given provider bound', () => {
         let provider = () => 1;
         let childScope = scope.with('key', provider);
+        let binding = getLocalBinding(childScope, 'key');
 
-        expect(getLocalBinding(childScope, 'key').provider).to.equal(provider);
+        expect(t.getSymbolValue(binding, 'scope')).to.equal(childScope);
+        expect(binding.provider).to.equal(provider);
         expect(t.getSymbolValue(childScope, 'parentScope')).to.equal(scope);
       });
     });
@@ -41,7 +43,7 @@
       it('should return a child scope with the given constant bound', () => {
         let childScope = scope.constant('key', 1);
 
-        expect(getLocalBinding(childScope, 'key').resolve(new Map())).to.equal(1);
+        expect(getLocalBinding(childScope, 'key').resolve(new RunContext())).to.equal(1);
         expect(t.getSymbolValue(childScope, 'parentScope')).to.equal(scope);
       });
     });
@@ -79,13 +81,13 @@
         let descendant = scope
             .constant('a', 1)
             .constant('a', 2);
-        expect(descendant.findBinding('a').resolve(new Map())).to.equal(2);
+        expect(descendant.findBinding('a').resolve(new RunContext())).to.equal(2);
       });
       it('should fallback to provider bound in the parent scope', () => {
         let descendant = scope
             .constant('a', 1)
             .constant('b', 2);
-        expect(descendant.findBinding('a').resolve(new Map())).to.equal(1);
+        expect(descendant.findBinding('a').resolve(new RunContext())).to.equal(1);
       });
       it('should return undefined if no provider is bound', () => {
         expect(scope.findBinding('a')).to.be.undefined;

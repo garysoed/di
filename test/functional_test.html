@@ -61,7 +61,7 @@
         done();
       });
     });
-    it('should ignore values bound with `with` unless in `run` context', done => {
+    it('should prioritize values bound with `with` and `constant`', done => {
       DIJS
           .with('a', () => 1)
           .bind('value', require => {
@@ -71,7 +71,8 @@
       DIJS
           .with('a', () => 2)
           .run(require => {
-            expect(require('value')).to.equal(2);
+            expect(require('value')).to.equal(1);
+            expect(require('a')).to.equal(2);
             done();
           });
     });

@@ -11,7 +11,8 @@
 </head>
 <body>
   <script lang="es6">
-  let Binding = DIJS.Scope.Binding;
+  let Binding = DIJS.Binding;
+  let RunContext = DIJS.RunContext;
   let expect = chai.expect;
   let _ = spies.Spies;
   let _M = spies.Matchers;
@@ -36,16 +37,16 @@
       });
 
       it('should call the provider and add the result to run context', () => {
-        let runContext = new Map();
+        let runContext = new RunContext();
         provider.overrideReturn(1);
 
         expect(binding.resolve(runContext)).to.equal(1);
         expect(provider).calledWith(_M.isA(Function), _M.isA(Function)).at.least(1);
-        expect(runContext.get(KEY)).to.equal(1);
+        expect(runContext.get(scope, KEY)).to.equal(1);
       });
       it('should not call the provider if the key is in runContext', () => {
-        let runContext = new Map();
-        runContext.set(KEY, 1);
+        let runContext = new RunContext();
+        runContext.add(scope, KEY, 1);
 
         expect(binding.resolve(runContext)).to.equal(1);
         expect(provider).called().to.equal(0);
@@ -67,7 +68,7 @@
               done();
             },
             scope);
-        binding.resolve(new Map());
+        binding.resolve(new RunContext());
       });
       it('should return undefined for unbound value', done => {
         scope.findBinding.overrideReturn(undefined);
@@ -78,7 +79,7 @@
               done();
             },
             scope);
-        binding.resolve(new Map());
+        binding.resolve(new RunContext());
       });
       it('should handle cyclic dependency', done => {
         let searchChain = [KEY];
@@ -90,7 +91,7 @@
               done();
             },
             scope);
-        binding.resolve(new Map(), searchChain);
+        binding.resolve(new RunContext(), searchChain);
       });
     });
 
@@ -109,7 +110,7 @@
               done();
             },
             scope);
-        binding.resolve(new Map());
+        binding.resolve(new RunContext());
       });
       it('should throw error for unbound value', done => {
         scope.findBinding.overrideReturn(undefined);
@@ -120,7 +121,7 @@
               done();
             },
             scope);
-        binding.resolve(new Map());
+        binding.resolve(new RunContext());
       });
       it('should handle cyclic dependency', done => {
         let searchChain = [KEY];
@@ -132,7 +133,7 @@
               done();
             },
             scope);
-        binding.resolve(new Map(), searchChain);
+        binding.resolve(new RunContext(), searchChain);
       });
     });
 
