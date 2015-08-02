@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base href=".">
+  <title>Binding Tests</title>
+
+  <link rel="import" href="testutils.html">
+  <link rel="import" href="../node_modules/spies/main_chai_expect.html">
+
+  <script src="bin.js"></script>
+</head>
+<body>
+  <script lang="es6">
+  let Binding = DIJS.Scope.Binding;
+  let expect = chai.expect;
+  let _ = spies.Spies;
+  let _M = spies.Matchers;
+
+  describe('Binding tests', () => {
+    let KEY = 'key';
+    let scope;
+
+    beforeEach(() => {
+      scope = {
+        findBinding: _.spiedFunction()
+      };
+    });
+
+    describe('resolve', () => {
+      let binding;
+      let provider;
+
+      beforeEach(() => {
+        provider = _.spiedFunction();
+        binding = new Binding(KEY, provider, scope);
+      });
+
+      it('should call the provider and add the result to run context', () => {
+        let runContext = new Map();
+        provider.overrideReturn(1);
+
+        expect(binding.resolve(runContext)).to.equal(1);
+        expect(provider).calledWith(_M.isA(Function), _M.isA(Function)).at.least(1);
+        expect(runContext.get(KEY)).to.equal(1);
+      });
+      it('should not call the provider if the key is in runContext', () => {
+        let runContext = new Map();
+        runContext.set(KEY, 1);
+
+        expect(binding.resolve(runContext)).to.equal(1);
+        expect(provider).called().to.equal(0);
+      });
+    });
+
+    describe('optional', () => {
+      it('should return the previously bound value', done => {
+        scope.findBinding.overrideReturn({
+          resolve() {
+            return 1;
+          }
+        });
+        let binding = new Binding(
+            KEY,
+            (require, optional) => {
+              expect(optional('a')).to.equal(1);
+              expect(scope.findBinding).calledWith('a').at.least(1);
+              done();
+            },
+            scope);
+        binding.resolve(new Map());
+      });
+      it('should return undefined for unbound value', done => {
+        scope.findBinding.overrideReturn(undefined);
+        let binding = new Binding(
+            KEY,
+            (require, optional) => {
+              expect(optional('a')).to.be.undefined;
+              done();
+            },
+            scope);
+        binding.resolve(new Map());
+      });
+      it('should handle cyclic dependency', done => {
+        let searchChain = [KEY];
+        scope.findBinding.overrideReturn(undefined);
+        let binding = new Binding(
+            KEY,
+            (require, optional) => {
+              expect(() => optional(KEY)).to.throw(`${KEY} -> ${KEY}`);
+              done();
+            },
+            scope);
+        binding.resolve(new Map(), searchChain);
+      });
+    });
+
+    describe('require', () => {
+      it('should return the previously bound value', done => {
+        scope.findBinding.overrideReturn({
+          resolve() {
+            return 1;
+          }
+        });
+        let binding = new Binding(
+            KEY,
+            require => {
+              expect(require('a')).to.equal(1);
+              expect(scope.findBinding).calledWith('a').at.least(1);
+              done();
+            },
+            scope);
+        binding.resolve(new Map());
+      });
+      it('should throw error for unbound value', done => {
+        scope.findBinding.overrideReturn(undefined);
+        let binding = new Binding(
+            KEY,
+            require => {
+              expect(() => require('a')).to.throw('a');
+              done();
+            },
+            scope);
+        binding.resolve(new Map());
+      });
+      it('should handle cyclic dependency', done => {
+        let searchChain = [KEY];
+        scope.findBinding.overrideReturn(undefined);
+        let binding = new Binding(
+            KEY,
+            require => {
+              expect(() => require(KEY)).to.throw(`${KEY} -> ${KEY}`);
+              done();
+            },
+            scope);
+        binding.resolve(new Map(), searchChain);
+      });
+    });
+
+    afterEach(() => {
+      _.reset();
+    });
+  });
+  </script>
+</body>
