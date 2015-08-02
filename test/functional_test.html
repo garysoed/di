@@ -70,10 +70,28 @@
             done();
           });
     });
+    it('should throw error with cyclic dependency', () => {
+      DIJS
+          .bind('a', require => {
+            return require('b');
+          })
+          .bind('b', require => {
+            return require('a');
+          });
 
-    afterEach(done => {
+      expect(() => DIJS.run(require => require('b'))).to.throw('b -> a -> b');
+    });
+    it('should use values from with and constant in binding function', () => {
+      DIJS
+          .constant('a', 1)
+          .bind('b', require => {
+            return require('a');
+          });
+      expect(DIJS.run(require => require('b'))).to.equal(1);
+    });
+
+    afterEach(() => {
       DIJS.reset();
-      done();
     });
   });
   </script>

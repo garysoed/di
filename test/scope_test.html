@@ -23,7 +23,7 @@
       done();
     });
 
-    function getLocalProvider(scope, key) {
+    function getLocalBinding(scope, key) {
       return t.getSymbolValue(scope, 'localBindings').get(key);
     }
 
@@ -32,7 +32,7 @@
         let provider = () => 1;
         let childScope = scope.with('key', provider);
 
-        expect(getLocalProvider(childScope, 'key')).to.equal(provider);
+        expect(getLocalBinding(childScope, 'key').provider).to.equal(provider);
         expect(t.getSymbolValue(childScope, 'parentScope')).to.equal(scope);
       });
     });
@@ -41,7 +41,7 @@
       it('should return a child scope with the given constant bound', () => {
         let childScope = scope.constant('key', 1);
 
-        expect(getLocalProvider(childScope, 'key')()).to.equal(1);
+        expect(getLocalBinding(childScope, 'key').resolve(new Map())).to.equal(1);
         expect(t.getSymbolValue(childScope, 'parentScope')).to.equal(scope);
       });
     });
@@ -52,7 +52,7 @@
         let descendant = scope.constant('a', 1).constant('b', 2);
         descendant.bind('c', provider);
 
-        expect(getLocalProvider(scope, 'c')).to.equal(provider);
+        expect(getLocalBinding(scope, 'c').provider).to.equal(provider);
       });
       it('should return the current scope', () => {
         expect(scope.bind('a', () => 1)).to.equal(scope);
@@ -74,73 +74,21 @@
       });
     });
 
-    describe('optional', () => {
-      it('should return the previously bound value', done => {
-        scope
-            .constant('a', 1)
-            .run((require, optional) => {
-              expect(optional('a')).to.equal(1);
-              done();
-            });
-      });
-      it('should return the previously returned value', done => {
-        scope
-            .constant('a', {})
-            .run((require, optional) => {
-              expect(optional('a')).to.equal(optional('a'));
-              done();
-            });
-      });
-      it('should return undefined for unbound value', done => {
-        scope.run((require, optional) => {
-              expect(optional('a')).to.be.undefined;
-              done();
-            });
-      });
-    });
-
-    describe('require', () => {
-      it('should return the previously bound value', done => {
-        scope
-            .constant('a', 1)
-            .run(require => {
-              expect(require('a')).to.equal(1);
-              done();
-            });
-      });
-      it('should return the previously returned value', done => {
-        scope
-            .constant('a', {})
-            .run(require => {
-              expect(require('a')).to.equal(require('a'));
-              done();
-            });
-      });
-      it('should throw error for unbound value', done => {
-        scope.run(require => {
-          expect(() => require('a')).to.throw('a');
-          done();
-        });
-      });
-    });
-
-    describe('__findProvider__', () => {
-      const __findProvider__ = t.getSymbol(DIJS.Scope.prototype, 'findProvider');
-
+    describe('findBinding', () => {
       it('should favor provider bound locally', () => {
         let descendant = scope
             .constant('a', 1)
             .constant('a', 2);
-        expect(descendant[__findProvider__]('a')()).to.equal(2);
+        expect(descendant.findBinding('a').resolve(new Map())).to.equal(2);
       });
       it('should fallback to provider bound in the parent scope', () => {
         let descendant = scope
             .constant('a', 1)
             .constant('b', 2);
-        expect(descendant[__findProvider__]('a')()).to.equal(1);
+        expect(descendant.findBinding('a').resolve(new Map())).to.equal(1);
       });
       it('should return undefined if no provider is bound', () => {
-        expect(scope[__findProvider__]('a')).to.be.undefined;
+        expect(scope.findBinding('a')).to.be.undefined;
       });
     });
   });

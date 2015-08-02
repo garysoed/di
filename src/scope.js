@@ -1,10 +1,12 @@
+import Binding from './binding';
+
 // Private symbols.
 const __localBindings__ = Symbol('localBindings');
 const __parentScope__ = Symbol('parentScope');
 const __prefix__ = Symbol('prefix');
 const __rootScope__ = Symbol('rootScope');
 
-const __registerProvider__ = Symbol('registerProvider');
+const __addBinding__ = Symbol('registerProvider');
 const __findProvider__ = Symbol('findProvider');
 
 class Scope {
@@ -21,24 +23,24 @@ class Scope {
     this[__rootScope__] = rootScope;
   }
 
-  [__registerProvider__](normalizedKey, fn) {
-    if (this[__localBindings__].has(normalizedKey)) {
-      throw new Error(`${normalizedKey} is already bound`);
+  [__addBinding__](key, binding) {
+    if (this[__localBindings__].has(key)) {
+      throw new Error(`${key} is already bound`);
     }
-    this[__localBindings__].set(normalizedKey, fn);
+    this[__localBindings__].set(key, binding);
   }
 
-  [__findProvider__](normalizedKey) {
+  findBinding(key) {
     // Checks the local binding.
-    let provider = this[__localBindings__].get(normalizedKey);
-    if (provider === undefined) {
+    let binding = this[__localBindings__].get(key);
+    if (binding === undefined) {
       if (this[__parentScope__]) {
-        return this[__parentScope__][__findProvider__](normalizedKey);
+        return this[__parentScope__].findBinding(key);
       } else {
         return undefined;
       }
     } else {
-      return provider;
+      return binding;
     }
   }
 
@@ -54,8 +56,9 @@ class Scope {
    * @return {DI.Scope} The newly created child scope.
    */
   with(key, fn) {
+    let binding = new Binding(key, fn, this);
     let childScope = new Scope(this, this[__rootScope__]);
-    childScope[__registerProvider__](key, fn);
+    childScope[__addBinding__](key, binding);
     return childScope;
   }
 
@@ -84,7 +87,8 @@ class Scope {
    * @param {Function} fn The provider function to run.
    */
   bind(key, fn) {
-    this[__rootScope__][__registerProvider__](key, fn);
+    let binding = new Binding(key, fn, this);
+    this[__rootScope__][__addBinding__](key, binding);
     return this;
   }
 
@@ -97,33 +101,14 @@ class Scope {
    * @param {Function} fn The function to run.
    */
   run(fn) {
+    let runBinding = new Binding(null, fn, this);
+
+    // Resolves all the bindings in the current scope.
     let resolvedValues = new Map();
-
-    let optional = key => {
-      let normalizedKey = key;
-      if (resolvedValues.has(normalizedKey)) {
-        return resolvedValues.get(normalizedKey);
-      }
-
-      let provider = this[__findProvider__](normalizedKey);
-      if (provider === undefined) {
-        return undefined;
-      } else {
-        let value = provider(require, optional);
-        resolvedValues.set(normalizedKey, value);
-        return value;
-      }
-    };
-
-    let require = key => {
-      let value = optional(key);
-      if (value === undefined) {
-        throw new Error(`Cannot find ${key}`);
-      }
-      return value;
-    };
-
-    return fn(require, optional);
+    for (let [key, binding] of this[__localBindings__]) {
+      binding.resolve(resolvedValues);
+    }
+    return runBinding.resolve(resolvedValues);
   }
 
   reset() {
