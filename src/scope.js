@@ -105,9 +105,18 @@ class Scope {
 
     // Resolves all the bindings in the current scope.
     let resolvedValues = new Map();
-    for (let [key, binding] of this[__localBindings__]) {
-      binding.resolve(resolvedValues);
-    }
+
+    let resolveBindings = function(scope) {
+      for (let [key, binding] of scope[__localBindings__]) {
+        binding.resolve(resolvedValues);
+      }
+
+      if (scope[__parentScope__]) {
+        resolveBindings(scope[__parentScope__]);
+      }
+    };
+
+    resolveBindings(this);
     return runBinding.resolve(resolvedValues);
   }
 
