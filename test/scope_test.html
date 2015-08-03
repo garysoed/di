@@ -12,30 +12,27 @@
 </head>
 <body>
   <script lang="es6">
-  const RunContext = DIJS.RunContext;
+  const Scope = DIJS.Scope;
+
   let expect = chai.expect;
 
   describe('Scope', () => {
     let scope;
 
-    beforeEach(done => {
-      scope = new DIJS.Scope();
-      done();
+    beforeEach(() => {
+      scope = new Scope();
     });
-
-    function getLocalBinding(scope, key) {
-      return t.getSymbolValue(scope, 'localBindings').get(key);
-    }
 
     describe('#with', () => {
       it('should return a child scope with the given provider bound', () => {
         let provider = () => 1;
         let childScope = scope.with('key', provider);
-        let binding = getLocalBinding(childScope, 'key');
 
-        expect(t.getSymbolValue(binding, 'scope')).to.equal(childScope);
-        expect(binding.provider).to.equal(provider);
+        expect(t.getSymbolValue(childScope, 'provider')).to.equal(provider);
+        expect(t.getSymbolValue(childScope, 'key')).to.equal('key');
         expect(t.getSymbolValue(childScope, 'parentScope')).to.equal(scope);
+        expect(t.getSymbolValue(childScope, 'globalBindings'))
+            .to.equal(t.getSymbolValue(scope, 'globalBindings'));
       });
     });
 
@@ -43,8 +40,11 @@
       it('should return a child scope with the given constant bound', () => {
         let childScope = scope.constant('key', 1);
 
-        expect(getLocalBinding(childScope, 'key').resolve(new RunContext())).to.equal(1);
+        expect(t.getSymbolValue(childScope, 'provider')()).to.equal(1);
+        expect(t.getSymbolValue(childScope, 'key')).to.equal('key');
         expect(t.getSymbolValue(childScope, 'parentScope')).to.equal(scope);
+        expect(t.getSymbolValue(childScope, 'globalBindings'))
+            .to.equal(t.getSymbolValue(scope, 'globalBindings'));
       });
     });
 
@@ -54,7 +54,8 @@
         let descendant = scope.constant('a', 1).constant('b', 2);
         descendant.bind('c', provider);
 
-        expect(getLocalBinding(scope, 'c').provider).to.equal(provider);
+        let bindScope = t.getSymbolValue(scope, 'globalBindings').get('c');
+        expect(t.getSymbolValue(bindScope, 'provider')).to.equal(provider);
       });
       it('should return the current scope', () => {
         expect(scope.bind('a', () => 1)).to.equal(scope);
@@ -76,21 +77,66 @@
       });
     });
 
-    describe('findBinding', () => {
+    describe('resolve', () => {
+      it('should return key in the global binding', () => {
+        let globalBindings = new Map();
+        globalBindings.set('key', new Scope(() => 1));
+
+        let scope = new Scope(null, 'test', null, globalBindings);
+        expect(scope.resolve('key')).to.equal(1);
+      });
+      it('should prefer key in the running scope', () => {
+        let globalBindings = new Map();
+        globalBindings.set('key', new Scope(() => 1));
+
+        let runningScope = new Scope(() => 2, 'key');
+        let scope = new Scope(null, 'test', null, globalBindings);
+        expect(scope.resolve('key', runningScope)).to.equal(2);
+      });
+      it('should prefer key in the ancestral scope', () => {
+        let globalBindings = new Map();
+        globalBindings.set('key', new Scope(() => 1));
+
+        let runningScope = new Scope(() => 2, 'key');
+        let parentScope = new Scope(() => 3, 'key');
+        let scope = new Scope(null, 'test', parentScope, globalBindings);
+        expect(scope.resolve('key', runningScope)).to.equal(3);
+      });
+      it('should return cached value', () => {
+        let scope = new Scope(() => 2, 'key');
+        let runContext = new Map();
+        runContext.set(scope, 1);
+
+        expect(scope.resolve('key', this, runContext)).to.equal(1);
+      });
+      it('should throw error for cyclic dependency', () => {
+        let searchChain = ['key'];
+        let scope = new Scope();
+
+        expect(() => scope.resolve('key', undefined, undefined, searchChain))
+            .to.throw('key -> key');
+      });
+    });
+
+    describe('__searchAncestor__', () => {
+      let __searchAncestor__;
+
+      beforeEach(() => {
+        __searchAncestor__ = t.getSymbol(Scope.prototype, 'searchAncestor');
+      });
+
       it('should favor provider bound locally', () => {
-        let descendant = scope
-            .constant('a', 1)
-            .constant('a', 2);
-        expect(descendant.findBinding('a').resolve(new RunContext())).to.equal(2);
+        let child = scope.constant('a', 1);
+        let grandChild = child.constant('a', 2);
+        expect(grandChild[__searchAncestor__]('a')).to.equal(grandChild);
       });
       it('should fallback to provider bound in the parent scope', () => {
-        let descendant = scope
-            .constant('a', 1)
-            .constant('b', 2);
-        expect(descendant.findBinding('a').resolve(new RunContext())).to.equal(1);
+        let child = scope.constant('a', 1);
+        let grandChild = child.constant('b', 2);
+        expect(grandChild[__searchAncestor__]('a')).to.equal(child);
       });
       it('should return undefined if no provider is bound', () => {
-        expect(scope.findBinding('a')).to.be.undefined;
+        expect(scope[__searchAncestor__]('a')).to.be.undefined;
       });
     });
   });
