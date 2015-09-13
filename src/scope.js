@@ -29,7 +29,7 @@ class Scope {
    *
    * @method __searchAncestor__
    * @param {string} name Name of the scope to be returned.
-   * @return {dijs.Scope} Ancestor scope, or the current scope, with the given name. Or null if
+   * @return {dijs.Scope} Ancestor scope, or the current scope, with the given name. Or undefined if
    *    no scopes can be found.
    * @private
    */

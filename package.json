@@ -1,6 +1,6 @@
 {
   "name": "di-js",
-  "version": "4.0.1",
+  "version": "4.0.0",
   "description": "Simple JavaScript dependency injection",
   "main": "index.js",
   "scripts": {
