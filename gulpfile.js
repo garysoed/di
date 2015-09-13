@@ -94,26 +94,6 @@ gulp.task('test-server', function(done) {
   }, done);
 });
 
-gulp.task('watch', function() {
-  // src
-  gulp.watch(['src/**/*.js', 'test/**/*.html'], function(event) {
-    var base = event.path.substring(__dirname.length).split('/')[1];
-    gulp.src(event.path, {base: base})
-        .pipe(plumber())
-        .pipe(subBabel())
-        .pipe(debug({title: chalk.green('src')}))
-        .pipe(gulp.dest('out'));
-  });
-
-  // JSHint
-  gulp.watch(['src/**/*.js', 'test/**/*.html'], function(event) {
-    var base = event.path.substring(__dirname.length).split('/')[1];
-    gulp.src(event.path, {base: base})
-        .pipe(plumber())
-        .pipe(subJsHint())
-        .pipe(debug({title: chalk.green('jshint')}));
-  });
-});
 
 gulp.task('compile', ['source', 'test-source']);
 gulp.task('pack', ['compile'], function() {

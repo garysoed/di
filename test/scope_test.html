@@ -18,18 +18,20 @@
 
   describe('Scope', () => {
     let scope;
+    let __resolve__;
 
     beforeEach(() => {
-      scope = new Scope();
+      scope = new Scope('(root)', null /* provider */, new Map());
+      __resolve__ = t.getSymbol(Scope.prototype, 'resolve');
     });
 
     describe('#with', () => {
       it('should return a child scope with the given provider bound', () => {
         let provider = () => 1;
-        let childScope = scope.with('key', provider);
+        let childScope = scope.with('name', provider);
 
         expect(t.getSymbolValue(childScope, 'provider')).to.equal(provider);
-        expect(t.getSymbolValue(childScope, 'key')).to.equal('key');
+        expect(t.getSymbolValue(childScope, 'name')).to.equal('name');
         expect(t.getSymbolValue(childScope, 'parentScope')).to.equal(scope);
         expect(t.getSymbolValue(childScope, 'globalBindings'))
             .to.equal(t.getSymbolValue(scope, 'globalBindings'));
@@ -38,10 +40,10 @@
 
     describe('#constant', () => {
       it('should return a child scope with the given constant bound', () => {
-        let childScope = scope.constant('key', 1);
+        let childScope = scope.constant('name', 1);
 
         expect(t.getSymbolValue(childScope, 'provider')()).to.equal(1);
-        expect(t.getSymbolValue(childScope, 'key')).to.equal('key');
+        expect(t.getSymbolValue(childScope, 'name')).to.equal('name');
         expect(t.getSymbolValue(childScope, 'parentScope')).to.equal(scope);
         expect(t.getSymbolValue(childScope, 'globalBindings'))
             .to.equal(t.getSymbolValue(scope, 'globalBindings'));
@@ -77,48 +79,62 @@
       });
     });
 
-    describe('resolve', () => {
+    describe('#export', () => {
+      it('should create the hierarchy when exporting the object', () => {
+        scope
+            .bind('a', () => 2)
+            .export('a', 'testData.a.b.c');
+
+        expect(window.testData.a.b.c).to.equal(2);
+      });
+
+      afterEach(() => {
+        delete window.testData;
+      });
+    });
+
+    describe('#__resolve__', () => {
       it('should return key in the global binding', () => {
         let globalBindings = new Map();
-        globalBindings.set('key', new Scope(() => 1));
+        globalBindings.set('key', new Scope('(root)', () => 1, globalBindings));
 
-        let scope = new Scope(null, 'test', null, globalBindings);
-        expect(scope.resolve('key')).to.equal(1);
+        let scope = new Scope('test', null /* provider */, globalBindings);
+        expect(scope[__resolve__]('key')).to.equal(1);
       });
       it('should prefer key in the running scope', () => {
         let globalBindings = new Map();
-        globalBindings.set('key', new Scope(() => 1));
+        globalBindings.set('key', new Scope('(root)', () => 1, globalBindings));
 
-        let runningScope = new Scope(() => 2, 'key');
-        let scope = new Scope(null, 'test', null, globalBindings);
-        expect(scope.resolve('key', runningScope)).to.equal(2);
+        let runningScope = new Scope('key', () => 2, globalBindings);
+        let scope = new Scope('test', null /* provider */, globalBindings);
+        expect(scope[__resolve__]('key', runningScope)).to.equal(2);
       });
       it('should prefer key in the ancestral scope', () => {
         let globalBindings = new Map();
-        globalBindings.set('key', new Scope(() => 1));
+        globalBindings.set('key', new Scope('(root)', () => 1, globalBindings));
 
-        let runningScope = new Scope(() => 2, 'key');
-        let parentScope = new Scope(() => 3, 'key');
-        let scope = new Scope(null, 'test', parentScope, globalBindings);
-        expect(scope.resolve('key', runningScope)).to.equal(3);
+        let runningScope = new Scope('key', () => 2, globalBindings);
+        let parentScope = new Scope('key', () => 3, globalBindings);
+        let scope = new Scope('test', null /* provider */, globalBindings, parentScope);
+        expect(scope[__resolve__]('key', runningScope)).to.equal(3);
       });
       it('should return cached value', () => {
-        let scope = new Scope(() => 2, 'key');
+        let scope = new Scope('key', () => 2, new Map());
         let runContext = new Map();
         runContext.set(scope, 1);
 
-        expect(scope.resolve('key', this, runContext)).to.equal(1);
+        expect(scope[__resolve__]('key', this, runContext)).to.equal(1);
       });
       it('should throw error for cyclic dependency', () => {
         let searchChain = ['key'];
-        let scope = new Scope();
+        let scope = new Scope('(root)', null /* provider */, new Map());
 
-        expect(() => scope.resolve('key', undefined, undefined, searchChain))
+        expect(() => scope[__resolve__]('key', undefined, undefined, searchChain))
             .to.throw('key -> key');
       });
     });
 
-    describe('__searchAncestor__', () => {
+    describe('#__searchAncestor__', () => {
       let __searchAncestor__;
 
       beforeEach(() => {
